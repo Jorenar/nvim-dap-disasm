@@ -139,6 +139,7 @@ end, {})
 
 M.config = {
   dapui_register = true,
+  repl_commands = true,
   sign = "DapStopped",
   ins_before_memref = req_defaults.before,
   ins_after_memref = req_defaults.after,
@@ -150,6 +151,23 @@ M.config = {
 
 M.setup = function(conf)
   M.config = vim.tbl_deep_extend("force", M.config, conf or {})
+
+  if M.config.repl_commands then
+    local dap_repl = require("dap.repl")
+    dap_repl.commands.custom_commands = vim.tbl_extend('force',
+      dap_repl.commands.custom_commands,
+      {
+        [".nexti"] = function()
+          dap.step_over({granularity = "instruction"})
+        end,
+        [".intoi"] = function()
+          dap.step_into({granularity = "instruction"})
+        end,
+        [".backi"] = function()
+          dap.step_back({granularity = "instruction"})
+        end,
+      })
+  end
 
   if M.config.dapui_register then
     if package.loaded["dapui"] then
