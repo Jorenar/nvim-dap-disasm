@@ -2,12 +2,14 @@ local M = {}
 
 local dap = require("dap")
 
-local disasm_bufnr = -1
 local req_defaults = {
   address = "pc",
   before = 16,
   after  = 16,
 }
+
+local disasm_bufnr = -1
+local instructions = {}
 
 local function get_disasm_bufnr()
   if not disasm_bufnr or not vim.api.nvim_buf_is_valid(disasm_bufnr) then
@@ -21,25 +23,39 @@ local function get_disasm_bufnr()
   return disasm_bufnr
 end
 
-local function write_buf(instructions, pc, jump_to_pc, cursor_offset)
+local function write_buf(pc, jump_to_pc, cursor_offset)
+  if not instructions or #instructions == 0 then
+    return
+  end
+
   jump_to_pc = (jump_to_pc == nil) or jump_to_pc
   cursor_offset = cursor_offset or 0
 
-  local lines = {}
   local pc_line = nil
 
-  if #instructions > 0 then
-    table.insert(lines, " ...")
-    for i, instruction in ipairs(instructions) do
-      local line = string.format(" %s:\t%s",
-        instruction.address or "N/A",
-        instruction.instruction or "N/A")
-      table.insert(lines, line)
-      if instruction.address == pc then
-        pc_line = i+1  -- "+1" to account for "..." line
-      end
+  local fmts = {}
+  for _,c in ipairs(M.config.columns) do
+    fmts[c] = string.format("%%-%ds", vim.fn.reduce(instructions,
+      function(w, ins) return math.max(w, #(ins[c] or "")) end, 0))
+  end
+
+  local lines = {}
+  for i,ins in ipairs(instructions) do
+    if ins.address == pc then
+      pc_line = i
     end
-    table.insert(lines, " ...")
+
+    local line = " "
+    if fmts.address then
+      line = line .. string.format(fmts.address .. ":\t", ins.address)
+    end
+    if fmts.instructionBytes then
+      line = line .. string.format(fmts.instructionBytes .. "\t", ins.instructionBytes or "??")
+    end
+    if fmts.instruction then
+      line = line .. string.format(fmts.instruction, ins.instruction or "??")
+    end
+    table.insert(lines, line)
   end
 
   local buffer = get_disasm_bufnr()
@@ -62,9 +78,6 @@ end
 
 local function request(session, pc, handler)
   local memref = pc
-  if req_defaults.address ~= "pc" then
-    memref = req_defaults.address
-  end
 
   local function get_ins_num(param, def)
     local ret = def
@@ -109,7 +122,8 @@ local function render(jump_to_pc, cursor_offset)
 
   request(session, pc, function(err, res)
     if err then return end
-    write_buf(res.instructions or {}, pc, jump_to_pc, cursor_offset)
+    instructions = res.instructions or {}
+    write_buf(pc, jump_to_pc, cursor_offset)
   end)
 end
 
@@ -123,6 +137,7 @@ vim.api.nvim_create_autocmd("FileType" , {
       local buf = p.buf
       for _, ev in ipairs({ "disconnect", "event_exited", "event_terminated" }) do
         dap.listeners.after[ev]["update_disassembly"] = function()
+          instructions = {}
           vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
         end
       end
@@ -143,10 +158,11 @@ M.config = {
   sign = "DapStopped",
   ins_before_memref = req_defaults.before,
   ins_after_memref = req_defaults.after,
-  -- columns = {
-  --   "address",
-  --   "instruction",
-  -- },
+  columns = {
+    "address",
+    "instructionBytes",
+    "instruction",
+  },
 }
 
 M.setup = function(conf)
