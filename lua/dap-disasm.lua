@@ -16,6 +16,7 @@ local function get_disasm_bufnr()
     disasm_bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(disasm_bufnr, "DAP Disassembly")
     vim.bo[disasm_bufnr].buftype = "nofile"
+    vim.bo[disasm_bufnr].modifiable = false
     vim.bo[disasm_bufnr].filetype = "dap_disassembly"
     vim.bo[disasm_bufnr].syntax = "asm"
   end
@@ -59,7 +60,9 @@ local function write_buf(pc, jump_to_pc, cursor_offset)
   end
 
   local buffer = get_disasm_bufnr()
+  vim.bo[buffer].modifiable = true
   vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
+  vim.bo[buffer].modifiable = false
 
   vim.fn.sign_unplace(M.config.sign, { buffer = buffer })
   if pc_line then
