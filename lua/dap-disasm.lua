@@ -24,6 +24,14 @@ local function get_disasm_bufnr()
   return disasm_bufnr
 end
 
+local function clear()
+  instructions = {}
+  if disasm_bufnr and vim.api.nvim_buf_is_valid(disasm_bufnr) then
+    vim.bo[disasm_bufnr].modifiable = true
+    vim.api.nvim_buf_set_lines(disasm_bufnr, 0, -1, false, {})
+  end
+end
+
 local function write_buf(pc, jump_to_pc, cursor_offset)
   if not instructions or #instructions == 0 then
     return
@@ -119,7 +127,7 @@ local function render(jump_to_pc, cursor_offset)
     return
   end
   if not pc then
-    write_buf({}, pc)
+    clear()
     return
   end
 
@@ -132,17 +140,13 @@ end
 
 vim.api.nvim_create_autocmd("FileType" , {
     pattern = "dap_disassembly",
-    callback = function(p)
+    callback = function()
       for _, ev in ipairs({ "scopes" }) do
         dap.listeners.after[ev]["update_disassembly"] = render
       end
 
-      local buf = p.buf
       for _, ev in ipairs({ "disconnect", "event_exited", "event_terminated" }) do
-        dap.listeners.after[ev]["update_disassembly"] = function()
-          instructions = {}
-          vim.api.nvim_buf_set_lines(buf, 0, -1, false, {})
-        end
+        dap.listeners.after[ev]["update_disassembly"] = clear
       end
     end
   })
