@@ -11,6 +11,16 @@ local req_defaults = {
 local disasm_bufnr = -1
 local instructions = {}
 
+M.step_over = function()
+  dap.step_over({granularity = "instruction"})
+end
+M.step_into = function()
+  dap.step_into({granularity = "instruction"})
+end
+M.step_back = function()
+  dap.step_back({granularity = "instruction"})
+end
+
 local function get_disasm_bufnr()
   if not disasm_bufnr or not vim.api.nvim_buf_is_valid(disasm_bufnr) then
     disasm_bufnr = vim.api.nvim_create_buf(false, true)
@@ -180,15 +190,9 @@ M.setup = function(conf)
     dap_repl.commands.custom_commands = vim.tbl_extend('force',
       dap_repl.commands.custom_commands,
       {
-        [".nexti"] = function()
-          dap.step_over({granularity = "instruction"})
-        end,
-        [".intoi"] = function()
-          dap.step_into({granularity = "instruction"})
-        end,
-        [".backi"] = function()
-          dap.step_back({granularity = "instruction"})
-        end,
+        [".nexti"] = M.step_over,
+        [".intoi"] = M.step_into,
+        [".backi"] = M.step_back,
       })
   end
 
