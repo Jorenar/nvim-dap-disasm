@@ -2,6 +2,7 @@ local M = {}
 
 local dap = require("dap")
 
+local augroup = vim.api.nvim_create_augroup("DapDisasm", { clear = true })
 local req_defaults = {
   address = "pc",
   before = 16,
@@ -19,6 +20,31 @@ M.step_into = function()
 end
 M.step_back = function()
   dap.step_back({granularity = "instruction"})
+end
+
+local function mk_winbar(is_active)
+  local session = dap.session()
+  local running = (session and not session.stopped_thread_id)
+
+  local avail_hl = function(group, allow_running)
+    if not session or (not allow_running and running) then
+      return is_active and "DapUIUnavailable" or "DapUIUnavailableNC"
+    end
+    return group
+  end
+
+  local hls = {
+    step_into = avail_hl(is_active and "DapUIStepInto" or "DapUIStepIntoNC"),
+    step_over = avail_hl(is_active and "DapUIStepOver" or "DapUIStepOverNC"),
+    step_back = avail_hl(is_active and "DapUIStepBack" or "DapUIStepBackNC"),
+  }
+  local bar = ""
+  for ctrl,label in pairs(M.config.controls) do
+    bar = bar .. string.format(
+      "  %%#%s#%%0@v:lua.require'dap-disasm'.%s@%s%%#0#",
+      hls[ctrl], ctrl, label)
+  end
+  return bar
 end
 
 local function get_disasm_bufnr()
@@ -39,6 +65,10 @@ local function clear()
   if disasm_bufnr and vim.api.nvim_buf_is_valid(disasm_bufnr) then
     vim.bo[disasm_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(disasm_bufnr, 0, -1, false, {})
+    vim.api.nvim_set_option_value("winbar", "", {
+        win = vim.fn.bufwinid(disasm_bufnr),
+        scope = "local",
+      })
   end
 end
 
@@ -74,6 +104,7 @@ local function write_buf(pc, jump_to_pc, cursor_offset)
     if fmts.instruction then
       line = line .. string.format(fmts.instruction, ins.instruction or "??")
     end
+    line = line:gsub("%s+$", "")
     table.insert(lines, line)
   end
 
@@ -120,7 +151,6 @@ local function request(session, pc, handler)
       memoryReference = memref,
       instructionCount = ins_before + 1 + ins_after,
       instructionOffset = -ins_before,
-      resolveSymbols = true,
     }, handler)
 end
 
@@ -145,11 +175,16 @@ local function render(jump_to_pc, cursor_offset)
     if err then return end
     instructions = res.instructions or {}
     write_buf(pc, jump_to_pc, cursor_offset)
+    vim.api.nvim_set_option_value("winbar", mk_winbar(), {
+        win = vim.fn.bufwinid(disasm_bufnr),
+        scope = "local",
+      })
   end)
 end
 
 vim.api.nvim_create_autocmd("FileType" , {
     pattern = "dap_disassembly",
+    group = augroup,
     callback = function()
       for _, ev in ipairs({ "scopes" }) do
         dap.listeners.after[ev]["update_disassembly"] = render
@@ -175,6 +210,11 @@ M.config = {
   sign = "DapStopped",
   ins_before_memref = req_defaults.before,
   ins_after_memref = req_defaults.after,
+  controls = {
+    step_into = "Step Into",
+    step_over = "Step Over",
+    step_back = "Step Back",
+  },
   columns = {
     "address",
     "instructionBytes",
