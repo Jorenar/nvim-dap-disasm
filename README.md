@@ -74,7 +74,7 @@ display the instructions at the current execution point.
 
 ## Acknowledgements
 
-* The code was pulled from [Jorenar/dotfiles](https://github.com/Jorenar/dotfiles)
-* Highly inspired by [vimspector](https://github.com/puremourning/vimspector)
+* The initial code was pulled from [Jorenar/dotfiles](https://github.com/Jorenar/dotfiles)
+* Highly inspired by [vimspector](https://github.com/puremourning/vimspector),
   and [prototype for nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui/pull/309)
   by [@ColinKennedy](https://github.com/ColinKennedy)
