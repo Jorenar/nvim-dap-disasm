@@ -3,6 +3,7 @@ local M = {}
 local dap = require("dap")
 
 local augroup = vim.api.nvim_create_augroup("DapDisasm", { clear = true })
+local vtxt_ns = vim.api.nvim_create_namespace("DapDisasmEllipsis")
 local req_defaults = {
   address = "pc",
   before = 16,
@@ -128,6 +129,17 @@ write_buf = function(pc, jump_to_pc, cursor_offset)
   vim.bo[buffer].modifiable = true
   vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
   vim.bo[buffer].modifiable = false
+
+  if #instructions > 1 then
+    vim.api.nvim_buf_clear_namespace(buffer, vtxt_ns, 0, -1)
+    vim.api.nvim_buf_set_extmark(buffer, vtxt_ns, 0, 0, {
+        virt_lines = {{{" ...", "Comment"}}},
+        virt_lines_above = true
+      })
+    vim.api.nvim_buf_set_extmark(buffer, vtxt_ns, #instructions-1, 0, {
+        virt_lines = {{{" ...", "Comment"}}}
+      })
+  end
 
   vim.fn.sign_unplace(M.config.sign, { buffer = buffer })
   if pc_line then
