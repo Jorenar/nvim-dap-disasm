@@ -12,6 +12,13 @@ local req_defaults = {
 local disasm_bufnr = -1
 local instructions = {}
 
+local clear
+local get_disasm_bufnr
+local mk_winbar
+local render
+local request
+local write_buf
+
 M.step_over = function()
   dap.step_over({granularity = "instruction"})
 end
@@ -22,7 +29,7 @@ M.step_back = function()
   dap.step_back({granularity = "instruction"})
 end
 
-local function mk_winbar(is_active)
+mk_winbar = function(is_active)
   local session = dap.session()
   local running = (session and not session.stopped_thread_id)
 
@@ -47,7 +54,7 @@ local function mk_winbar(is_active)
   return bar
 end
 
-local function get_disasm_bufnr()
+get_disasm_bufnr = function()
   if not disasm_bufnr or not vim.api.nvim_buf_is_valid(disasm_bufnr) then
     disasm_bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(disasm_bufnr, "DAP Disassembly")
@@ -55,24 +62,33 @@ local function get_disasm_bufnr()
     vim.bo[disasm_bufnr].modifiable = false
     vim.bo[disasm_bufnr].filetype = "dap_disassembly"
     vim.bo[disasm_bufnr].syntax = "asm"
+
+    vim.api.nvim_create_autocmd("BufWinEnter" , {
+        buffer = disasm_bufnr,
+        group = augroup,
+        callback = function() render() end
+      })
   end
 
   return disasm_bufnr
 end
 
-local function clear()
+clear = function()
   instructions = {}
   if disasm_bufnr and vim.api.nvim_buf_is_valid(disasm_bufnr) then
     vim.bo[disasm_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(disasm_bufnr, 0, -1, false, {})
-    vim.api.nvim_set_option_value("winbar", "", {
-        win = vim.fn.bufwinid(disasm_bufnr),
-        scope = "local",
-      })
+    local win = vim.fn.bufwinid(disasm_bufnr)
+    if win and vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_set_option_value("winbar", "", {
+          win = win,
+          scope = "local",
+        })
+    end
   end
 end
 
-local function write_buf(pc, jump_to_pc, cursor_offset)
+write_buf = function(pc, jump_to_pc, cursor_offset)
   if not instructions or #instructions == 0 then
     return
   end
@@ -128,7 +144,7 @@ local function write_buf(pc, jump_to_pc, cursor_offset)
   end
 end
 
-local function request(session, pc, handler)
+request = function(session, pc, handler)
   local memref = pc
 
   local function get_ins_num(param, def)
@@ -154,8 +170,13 @@ local function request(session, pc, handler)
     }, handler)
 end
 
-local function render(jump_to_pc, cursor_offset)
+render = function(jump_to_pc, cursor_offset)
   local session, current_frame, pc
+
+  local win = vim.fn.bufwinid(disasm_bufnr)
+  if not win or not vim.api.nvim_win_is_valid(win) then
+    return
+  end
 
   session = dap.session()
   if session then
@@ -176,7 +197,7 @@ local function render(jump_to_pc, cursor_offset)
     instructions = res.instructions or {}
     write_buf(pc, jump_to_pc, cursor_offset)
     vim.api.nvim_set_option_value("winbar", mk_winbar(), {
-        win = vim.fn.bufwinid(disasm_bufnr),
+        win = win,
         scope = "local",
       })
   end)
