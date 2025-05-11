@@ -3,15 +3,16 @@ local M = {}
 local dap = require("dap")
 
 local augroup = vim.api.nvim_create_augroup("DapDisasm", { clear = true })
-local vtxt_ns = vim.api.nvim_create_namespace("DapDisasmEllipsis")
-local req_defaults = {
-  address = "pc",
+
+local memref_default = {
+  ref = nil,
   before = 16,
   after  = 16,
 }
 
 local disasm_bufnr = -1
 local instructions = {}
+local memref = {}
 
 local clear
 local get_disasm_bufnr
@@ -28,6 +29,40 @@ M.step_into = function()
 end
 M.step_back = function()
   dap.step_back({granularity = "instruction"})
+end
+
+M.set_memref = function(ref, before, after)
+  if ref then
+    if ref == "-1" then
+      memref.ref = nil
+    else
+      memref.ref = ref
+    end
+  end
+
+  if before then
+    local b = tonumber(before)
+    if not b then
+      vim.notify("Invalid 'before' count: " .. before .. ". Must be a number.", vim.log.levels.WARN)
+    elseif b < 0 then
+      memref.before = nil
+    else
+      memref.before = b
+    end
+  end
+
+  if after then
+    local a = tonumber(after)
+    if not a then
+      vim.notify("Invalid 'after' count: " .. after .. ". Must be a number.", vim.log.levels.WARN)
+    elseif a < 0 then
+      memref.after = nil
+    else
+      memref.after = a
+    end
+  end
+
+  render()
 end
 
 mk_winbar = function(is_active)
@@ -89,13 +124,10 @@ clear = function()
   end
 end
 
-write_buf = function(pc, jump_to_pc, cursor_offset)
+write_buf = function(pc)
   if not instructions or #instructions == 0 then
     return
   end
-
-  jump_to_pc = (jump_to_pc == nil) or jump_to_pc
-  cursor_offset = cursor_offset or 0
 
   local pc_line = nil
 
@@ -130,17 +162,6 @@ write_buf = function(pc, jump_to_pc, cursor_offset)
   vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
   vim.bo[buffer].modifiable = false
 
-  if #instructions > 1 then
-    vim.api.nvim_buf_clear_namespace(buffer, vtxt_ns, 0, -1)
-    vim.api.nvim_buf_set_extmark(buffer, vtxt_ns, 0, 0, {
-        virt_lines = {{{" ...", "Comment"}}},
-        virt_lines_above = true
-      })
-    vim.api.nvim_buf_set_extmark(buffer, vtxt_ns, #instructions-1, 0, {
-        virt_lines = {{{" ...", "Comment"}}}
-      })
-  end
-
   vim.fn.sign_unplace(M.config.sign, { buffer = buffer })
   if pc_line then
     vim.fn.sign_place(0, "DisasmSigns", M.config.sign, buffer, {
@@ -149,16 +170,12 @@ write_buf = function(pc, jump_to_pc, cursor_offset)
 
     local win = vim.fn.bufwinid(buffer)
     if win ~= -1 then
-      pc_line = jump_to_pc and pc_line or vim.fn.line(".", win)
-      pc_line = pc_line + cursor_offset
       vim.api.nvim_win_set_cursor(win, { pc_line, 0 })
     end
   end
 end
 
 request = function(session, pc, handler)
-  local memref = pc
-
   local function get_ins_num(param, def)
     local ret = def
     if type(param) == "number" then
@@ -172,17 +189,17 @@ request = function(session, pc, handler)
     return ret
   end
 
-  local ins_before = get_ins_num(M.config.ins_before_memref, req_defaults.before)
-  local ins_after = get_ins_num(M.config.ins_after_memref, req_defaults.after)
+  local ins_before = get_ins_num(memref.before, memref_default.before)
+  local ins_after = get_ins_num(memref.after, memref_default.after)
 
   session:request("disassemble", {
-      memoryReference = memref,
+      memoryReference = memref.ref or pc,
       instructionCount = ins_before + 1 + ins_after,
       instructionOffset = -ins_before,
     }, handler)
 end
 
-render = function(jump_to_pc, cursor_offset)
+render = function()
   local session, current_frame, pc
 
   local win = vim.fn.bufwinid(disasm_bufnr)
@@ -207,7 +224,7 @@ render = function(jump_to_pc, cursor_offset)
   request(session, pc, function(err, res)
     if err then return end
     instructions = res.instructions or {}
-    write_buf(pc, jump_to_pc, cursor_offset)
+    write_buf(pc)
     vim.api.nvim_set_option_value("winbar", mk_winbar(), {
         win = win,
         scope = "local",
@@ -237,12 +254,28 @@ vim.api.nvim_create_user_command("DapDisasm", function(t)
   render()
 end, {})
 
+vim.api.nvim_create_user_command("DapDisasmSetMemref", function(t)
+  local args = {}
+
+  for i = 1, 3 do
+    if not t.fargs[i] then
+      args[i] = ""
+    elseif t.fargs[i] == "-" then
+      args[i] = nil
+    else
+      args[i] = t.fargs[i]
+    end
+  end
+
+  M.set_memref(args[1], args[2], args[3])
+end, { nargs = "*" })
+
 M.config = {
   dapui_register = true,
   repl_commands = true,
   sign = "DapStopped",
-  ins_before_memref = req_defaults.before,
-  ins_after_memref = req_defaults.after,
+  ins_before_memref = nil,
+  ins_after_memref = nil,
   controls = {
     step_into = "Step Into",
     step_over = "Step Over",
@@ -257,6 +290,13 @@ M.config = {
 
 M.setup = function(conf)
   M.config = vim.tbl_deep_extend("force", M.config, conf or {})
+
+  if M.config.ins_before_memref then
+    memref_default.before = M.config.ins_before_memref
+  end
+  if M.config.ins_after_memref then
+    memref_default.after = M.config.ins_after_memref
+  end
 
   if M.config.repl_commands then
     local dap_repl = require("dap.repl")
