@@ -151,7 +151,7 @@ write_buf = function(pc)
       line = line .. string.format(fmts.instructionBytes .. "\t", ins.instructionBytes or "??")
     end
     if fmts.instruction then
-      line = line .. string.format(fmts.instruction, ins.instruction or "??")
+      line = line .. (ins.instruction or "??")
     end
     line = line:gsub("%s+$", "")
     table.insert(lines, line)
