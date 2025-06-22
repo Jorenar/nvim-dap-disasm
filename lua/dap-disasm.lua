@@ -10,14 +10,11 @@ local memref_default = {
   after  = 16,
 }
 
-local disasm_bufnr = -1
 local instructions = {}
 local memref = {}
 
 local clear
-local get_disasm_bufnr
 local mk_winbar
-local render
 local request
 local write_buf
 
@@ -29,6 +26,39 @@ M.step_into = function()
 end
 M.step_back = function()
   dap.step_back({granularity = "instruction"})
+end
+
+local disasm_buf = {
+  _nr = -1,
+}
+
+disasm_buf.create = function()
+  local buf, extern = disasm_buf.bufnr()
+  if extern then
+    return buf or -1
+  elseif buf and vim.api.nvim_buf_is_valid(buf) then
+    return buf
+  end
+
+  buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_name(buf, "DAP Disassembly")
+  vim.bo[buf].buftype = "nofile"
+  vim.bo[buf].modifiable = false
+  vim.bo[buf].filetype = "dap_disassembly"
+  vim.bo[buf].syntax = "asm"
+  disasm_buf._nr = buf
+
+  vim.api.nvim_create_autocmd("BufWinEnter" , {
+      buffer = buf,
+      group = augroup,
+      callback = function() M.refresh() end
+    })
+
+  return buf
+end
+
+disasm_buf.bufnr = function()
+  return disasm_buf._nr, false
 end
 
 M.set_memref = function(ref, before, after)
@@ -62,7 +92,7 @@ M.set_memref = function(ref, before, after)
     end
   end
 
-  render()
+  M.refresh()
 end
 
 mk_winbar = function(is_active)
@@ -90,36 +120,20 @@ mk_winbar = function(is_active)
   return bar
 end
 
-get_disasm_bufnr = function()
-  if not disasm_bufnr or not vim.api.nvim_buf_is_valid(disasm_bufnr) then
-    disasm_bufnr = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_name(disasm_bufnr, "DAP Disassembly")
-    vim.bo[disasm_bufnr].buftype = "nofile"
-    vim.bo[disasm_bufnr].modifiable = false
-    vim.bo[disasm_bufnr].filetype = "dap_disassembly"
-    vim.bo[disasm_bufnr].syntax = "asm"
-
-    vim.api.nvim_create_autocmd("BufWinEnter" , {
-        buffer = disasm_bufnr,
-        group = augroup,
-        callback = function() render() end
-      })
-  end
-
-  return disasm_bufnr
-end
-
 clear = function()
   instructions = {}
-  if disasm_bufnr and vim.api.nvim_buf_is_valid(disasm_bufnr) then
-    vim.bo[disasm_bufnr].modifiable = true
-    vim.api.nvim_buf_set_lines(disasm_bufnr, 0, -1, false, {})
-    local win = vim.fn.bufwinid(disasm_bufnr)
-    if win and vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_set_option_value("winbar", "", {
-          win = win,
-          scope = "local",
-        })
+  local buffer, buf_extern = disasm_buf.bufnr()
+  if buffer and vim.api.nvim_buf_is_valid(buffer) then
+    vim.bo[buffer].modifiable = true
+    vim.api.nvim_buf_set_lines(buffer, 0, -1, false, {})
+    if not buf_extern then
+      local win = vim.fn.bufwinid(buffer)
+      if win and vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_set_option_value("winbar", "", {
+            win = win,
+            scope = "local",
+          })
+      end
     end
   end
 end
@@ -157,18 +171,19 @@ write_buf = function(pc)
     table.insert(lines, line)
   end
 
-  local buffer = get_disasm_bufnr()
-  vim.bo[buffer].modifiable = true
-  vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
-  vim.bo[buffer].modifiable = false
+  local buf = disasm_buf.bufnr()
+  local ma_old = vim.bo[buf].modifiable
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = ma_old
 
-  vim.fn.sign_unplace(M.config.sign, { buffer = buffer })
+  vim.fn.sign_unplace(M.config.sign, { buffer = buf })
   if pc_line then
-    vim.fn.sign_place(0, "DisasmSigns", M.config.sign, buffer, {
+    vim.fn.sign_place(0, "DisasmSigns", M.config.sign, buf, {
         lnum = pc_line, priority = 10
       })
 
-    local win = vim.fn.bufwinid(buffer)
+    local win = vim.fn.bufwinid(buf)
     if win ~= -1 then
       vim.api.nvim_win_set_cursor(win, { pc_line, 0 })
     end
@@ -199,10 +214,11 @@ request = function(session, pc, handler)
     }, handler)
 end
 
-render = function()
+M.refresh = function()
   local session, current_frame, pc
 
-  local win = vim.fn.bufwinid(disasm_bufnr)
+  local buf, buf_extern = disasm_buf.bufnr()
+  local win = vim.fn.bufwinid(buf)
   if not win or not vim.api.nvim_win_is_valid(win) then
     return
   end
@@ -225,10 +241,12 @@ render = function()
     if err then return end
     instructions = res.instructions or {}
     write_buf(pc)
-    vim.api.nvim_set_option_value("winbar", mk_winbar(), {
-        win = win,
-        scope = "local",
-      })
+    if not buf_extern then
+      vim.api.nvim_set_option_value("winbar", mk_winbar(), {
+          win = win,
+          scope = "local",
+        })
+    end
   end)
 end
 
@@ -237,7 +255,7 @@ vim.api.nvim_create_autocmd("FileType" , {
     group = augroup,
     callback = function()
       for _, ev in ipairs({ "scopes" }) do
-        dap.listeners.after[ev]["update_disassembly"] = render
+        dap.listeners.after[ev]["update_disassembly"] = M.refresh
       end
 
       for _, ev in ipairs({ "disconnect", "event_exited", "event_terminated" }) do
@@ -249,9 +267,9 @@ vim.api.nvim_create_autocmd("FileType" , {
 vim.api.nvim_create_user_command("DapDisasm", function(t)
   vim.cmd(t.smods.vertical and "vsplit" or "split")
   local win = vim.api.nvim_get_current_win()
-  local buf = get_disasm_bufnr()
+  local buf = disasm_buf.create()
   vim.api.nvim_win_set_buf(win, buf)
-  render()
+  M.refresh()
 end, {})
 
 vim.api.nvim_create_user_command("DapDisasmSetMemref", function(t)
@@ -312,8 +330,8 @@ M.setup = function(conf)
   if M.config.dapui_register then
     if package.loaded["dapui"] then
       require("dapui").register_element("disassembly", {
-          render = render,
-          buffer = get_disasm_bufnr,
+          render = M.refresh,
+          buffer = disasm_buf.create,
           allow_without_session = false,
         })
     end
