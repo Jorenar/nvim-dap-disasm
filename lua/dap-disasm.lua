@@ -309,6 +309,8 @@ M.config = {
 }
 
 M.setup = function(conf)
+  vim.treesitter.language.register("disassembly", "dap_disassembly")
+
   M.config = vim.tbl_deep_extend("force", M.config, conf or {})
 
   if M.config.ins_before_memref then
