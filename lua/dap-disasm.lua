@@ -128,7 +128,7 @@ clear = function()
     vim.api.nvim_buf_set_lines(buffer, 0, -1, false, {})
     if not buf_extern then
       local win = vim.fn.bufwinid(buffer)
-      if win and vim.api.nvim_win_is_valid(win) then
+      if win and vim.api.nvim_win_is_valid(win) and M.config.winbar then
         vim.api.nvim_set_option_value("winbar", "", {
             win = win,
             scope = "local",
@@ -241,7 +241,7 @@ M.refresh = function()
     if err then return end
     instructions = res.instructions or {}
     write_buf(pc)
-    if not buf_extern then
+    if M.config.winbar then
       vim.api.nvim_set_option_value("winbar", mk_winbar(), {
           win = win,
           scope = "local",
@@ -291,6 +291,7 @@ end, { nargs = "*" })
 M.config = {
   dapui_register = true,
   repl_commands = true,
+  winbar = true,
   sign = "DapStopped",
   ins_before_memref = nil,
   ins_after_memref = nil,
