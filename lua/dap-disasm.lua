@@ -289,6 +289,7 @@ vim.api.nvim_create_user_command("DapDisasmSetMemref", function(t)
 end, { nargs = "*" })
 
 M.config = {
+  dapview_register = true,
   dapui_register = true,
   repl_commands = true,
   winbar = true,
@@ -336,6 +337,17 @@ M.setup = function(conf)
           allow_without_session = false,
         })
     end
+  end
+
+  if M.config.dapview_register and package.loaded["dap-view"] then
+    require("dap-view").register_view("disassembly", {
+      action = M.refresh,
+      buffer = disasm_buf.create,
+      keymap = "D",
+      label = "Disassembly [D]",
+      short_label = "󰚩 [D]",
+      filetype = "dap_disassembly",
+    })
   end
 end
 
