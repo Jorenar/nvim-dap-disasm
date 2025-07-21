@@ -24,8 +24,15 @@ require("nvim-dap-disasm").setup({
     -- Add disassembly view to elements of nvim-dap-ui
     dapui_register = true,
 
+    -- Add disassembly view to nvim-dap-view
+    dapview_register = true,
+
     -- Add custom REPL commands for stepping with instruction granularity
     repl_commands = true,
+
+    -- Show winbar with buttons to step into the code with instruction granularity
+    -- This settings is overriden (disabled) if the dapview integration is enabled and the plugin is installed
+    winbar = true,
 
     -- The sign to use for instruction the exectution is stopped at
     sign = "DapStopped",

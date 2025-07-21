@@ -289,8 +289,8 @@ vim.api.nvim_create_user_command("DapDisasmSetMemref", function(t)
 end, { nargs = "*" })
 
 M.config = {
-  dapview_register = true,
   dapui_register = true,
+  dapview_register = true,
   repl_commands = true,
   winbar = true,
   sign = "DapStopped",
@@ -342,6 +342,8 @@ M.setup = function(conf)
   end
 
   if M.config.dapview_register and package.loaded["dap-view"] then
+    -- disable winbar to avoid conflict with dap-view
+    M.config.winbar = false
     require("dap-view").register_view("disassembly", {
       action = M.refresh,
       buffer = disasm_buf.create,
