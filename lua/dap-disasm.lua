@@ -349,7 +349,8 @@ M.setup = function(conf)
       buffer = disasm_buf.create,
       keymap = "D",
       label = "Disassembly [D]",
-      short_label = "󰚩 [D]",
+      -- nerd font icon nf-md-cog
+      short_label = "󰒓 [D]",
       filetype = "dap_disassembly",
     })
   end
