@@ -16,6 +16,7 @@ Install like any other Neovim plugin:
 
 * [nvim-dap](https://github.com/mfussenegger/nvim-dap)
 * [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui) (optional)
+* [nvim-dap-view](https://github.com/igorlfs/nvim-dap-view) (optional)
 
 ## Configuration
 
