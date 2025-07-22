@@ -74,6 +74,19 @@ require("nvim-dap-ui").setup({
   })
 ```
 
+If you are using nvim-dap-view, you can add it as a section, e.g.:
+
+```lua
+require("dap-view").setup({
+    winbar = {
+        sections = {
+            "disassembly",
+            -- ...
+        },
+    }
+})
+```
+
 ## Usage
 
 To use the disassembly view, start a debugging session with nvim-dap and open
