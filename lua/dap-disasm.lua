@@ -10,6 +10,13 @@ local memref_default = {
   after  = 16,
 }
 
+local use_dap_request = false
+local dap_request = {
+  memoryReference = nil,
+  instructionCount = nil,
+  instructionOffset = nil,
+}
+
 local instructions = {}
 local memref = {}
 
@@ -207,11 +214,20 @@ request = function(session, pc, handler)
   local ins_before = get_ins_num(memref.before, memref_default.before)
   local ins_after = get_ins_num(memref.after, memref_default.after)
 
-  session:request("disassemble", {
-      memoryReference = memref.ref or pc,
-      instructionCount = ins_before + 1 + ins_after,
-      instructionOffset = -ins_before,
-    }, handler)
+  local disassemble_request = {
+    memoryReference = memref.ref or pc,
+    instructionCount = use_dap_request
+        and dap_request.instructionCount
+        or ins_before + 1 + ins_after,
+    instructionOffset = use_dap_request
+        and dap_request.instructionOffset
+        or -ins_before,
+    resolveSymbols = use_dap_request
+        and dap_request.resolveSymbols
+        or nil,
+  }
+
+  session:request("disassemble", disassemble_request, handler)
 end
 
 M.refresh = function()
@@ -238,7 +254,11 @@ M.refresh = function()
   end
 
   request(session, pc, function(err, res)
-    if err then return end
+    if err then
+      vim.notify("DAP Disassembly request error: " .. err.message, vim.log.levels.ERROR)
+      return
+    end
+
     instructions = res.instructions or {}
     write_buf(pc)
     if M.config.winbar then
@@ -319,6 +339,12 @@ M.setup = function(conf)
   if M.config.ins_after_memref then
     memref_default.after = M.config.ins_after_memref
   end
+
+  use_dap_request = M.config.use_direct_request or false
+
+  dap_request = use_dap_request
+      and vim.tbl_extend("force", dap_request, conf.direct_request or {})
+      or dap_request
 
   if M.config.repl_commands then
     local dap_repl = require("dap.repl")
