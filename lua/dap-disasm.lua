@@ -326,6 +326,12 @@ M.config = {
     "instructionBytes",
     "instruction",
   },
+  dapview = {
+    keymap = "D",
+    label = "Disassembly [D]",
+    -- nerd font icon nf-md-cog
+    short_label = "󰒓 [D]",
+  }
 }
 
 M.setup = function(conf)
@@ -373,10 +379,9 @@ M.setup = function(conf)
     require("dap-view").register_view("disassembly", {
       action = M.refresh,
       buffer = disasm_buf.create,
-      keymap = "D",
-      label = "Disassembly [D]",
-      -- nerd font icon nf-md-cog
-      short_label = "󰒓 [D]",
+      keymap = M.config.dapview.keymap,
+      label = M.config.dapview.label,
+      short_label = M.config.dapview.label,
       filetype = "dap_disassembly",
     })
   end
