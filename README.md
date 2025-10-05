@@ -28,6 +28,13 @@ require("nvim-dap-disasm").setup({
     -- Add disassembly view to nvim-dap-view
     dapview_register = true,
 
+    -- If registered, pass section configuration to nvim-dap-view
+    dapview = {
+      keymap = "D",
+      label = "Disassembly [D]",
+      short_label = "󰒓 [D]",
+    },
+
     -- Add custom REPL commands for stepping with instruction granularity
     repl_commands = true,
 
