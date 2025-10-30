@@ -1,7 +1,7 @@
 nvim-dap-disasm
 ===============
 
-Disassembly view for [nvim-dap](https://github.com/mfussenegger/nvim-dap)
+Disassembly view for [nvim-dap](https://codeberg.org/mfussenegger/nvim-dap)
 
 ## Installation
 
