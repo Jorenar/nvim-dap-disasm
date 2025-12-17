@@ -21,7 +21,7 @@ Install like any other Neovim plugin:
 ## Configuration
 
 ```lua
-require("nvim-dap-disasm").setup({
+require("dap-disasm").setup({
     -- Add disassembly view to elements of nvim-dap-ui
     dapui_register = true,
 
