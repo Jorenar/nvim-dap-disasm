@@ -7,14 +7,14 @@ Disassembly view for [nvim-dap](https://codeberg.org/mfussenegger/nvim-dap)
 
 Install like any other Neovim plugin:
 
-* `git clone https://github.com/Jorenar/nvim-dap-disasm.git ~/.config/nvim/pack/plugins/start/nvim-dap-disasm`
+* `git clone https://codeberg.org/Jorenar/nvim-dap-disasm.git ~/.config/nvim/pack/plugins/start/nvim-dap-disasm`
 * or with vim-plug: `Plug 'Jorenar/nvim-dap-disasm'`
 * or with packer.nvim: `use 'Jorenar/nvim-dap-disasm'`
 * or any other plugin manager.
 
 ## Dependencies
 
-* [nvim-dap](https://github.com/mfussenegger/nvim-dap)
+* [nvim-dap](https://codeberg.org/mfussenegger/nvim-dap)
 * [nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui) (optional)
 * [nvim-dap-view](https://github.com/igorlfs/nvim-dap-view) (optional)
 
@@ -102,7 +102,7 @@ display the instructions at the current execution point.
 
 ## Acknowledgements
 
-* The initial code was pulled from [Jorenar/dotfiles](https://github.com/Jorenar/dotfiles)
+* The initial code was pulled from [Jorenar/dotfiles](https://codeberg.org/Jorenar/dotfiles)
 * Highly inspired by [vimspector](https://github.com/puremourning/vimspector),
   and [prototype for nvim-dap-ui](https://github.com/rcarriga/nvim-dap-ui/pull/309)
   by [@ColinKennedy](https://github.com/ColinKennedy)
