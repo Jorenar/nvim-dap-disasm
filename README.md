@@ -8,8 +8,8 @@ Disassembly view for [nvim-dap](https://codeberg.org/mfussenegger/nvim-dap)
 Install like any other Neovim plugin:
 
 * `git clone https://codeberg.org/Jorenar/nvim-dap-disasm.git ~/.config/nvim/pack/plugins/start/nvim-dap-disasm`
-* or with vim-plug: `Plug 'Jorenar/nvim-dap-disasm'`
-* or with packer.nvim: `use 'Jorenar/nvim-dap-disasm'`
+* or with vim-plug: `Plug 'https://codeberg.org/Jorenar/nvim-dap-disasm.git'`
+* or with packer.nvim: `use 'https://codeberg.org/Jorenar/nvim-dap-disasm.git'`
 * or any other plugin manager.
 
 ## Dependencies
