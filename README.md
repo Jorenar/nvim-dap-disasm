@@ -35,9 +35,6 @@ require("dap-disasm").setup({
       short_label = "󰒓 [D]",
     },
 
-    -- Add custom REPL commands for stepping with instruction granularity
-    repl_commands = true,
-
     -- Show winbar with buttons to step into the code with instruction granularity
     -- This settings is overriden (disabled) if the dapview integration is enabled and the plugin is installed
     winbar = true,

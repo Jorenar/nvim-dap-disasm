@@ -351,17 +351,6 @@ M.setup = function(conf)
       and vim.tbl_extend("force", dap_request, conf.direct_request or {})
       or dap_request
 
-  if M.config.repl_commands then
-    local dap_repl = require("dap.repl")
-    dap_repl.commands.custom_commands = vim.tbl_extend('force',
-      dap_repl.commands.custom_commands,
-      {
-        [".nexti"] = M.step_over,
-        [".intoi"] = M.step_into,
-        [".backi"] = M.step_back,
-      })
-  end
-
   if M.config.dapui_register then
     if package.loaded["dapui"] then
       require("dapui").register_element("disassembly", {
