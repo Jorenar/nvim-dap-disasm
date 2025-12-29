@@ -51,7 +51,7 @@ disasm_buf.create = function()
   vim.api.nvim_buf_set_name(buf, "DAP Disassembly")
   vim.bo[buf].buftype = "nofile"
   vim.bo[buf].modifiable = false
-  vim.bo[buf].filetype = "dap_disassembly"
+  vim.bo[buf].filetype = "dap-disassembly"
   vim.bo[buf].syntax = "asm"
   disasm_buf._nr = buf
 
@@ -271,7 +271,7 @@ M.refresh = function()
 end
 
 vim.api.nvim_create_autocmd("FileType" , {
-    pattern = "dap_disassembly",
+    pattern = "dap-disassembly",
     group = augroup,
     callback = function()
       for _, ev in ipairs({ "scopes" }) do
@@ -334,7 +334,7 @@ M.config = {
 }
 
 M.setup = function(conf)
-  vim.treesitter.language.register("disassembly", "dap_disassembly")
+  vim.treesitter.language.register("disassembly", "dap-disassembly")
 
   M.config = vim.tbl_deep_extend("force", M.config, conf or {})
 
@@ -370,7 +370,7 @@ M.setup = function(conf)
       keymap = M.config.dapview.keymap,
       label = M.config.dapview.label,
       short_label = M.config.dapview.label,
-      filetype = "dap_disassembly",
+      filetype = "dap-disassembly",
     })
   end
 end
