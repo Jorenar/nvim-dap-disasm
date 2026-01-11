@@ -37,7 +37,17 @@ require("dap-disasm").setup({
 
     -- Show winbar with buttons to step into the code with instruction granularity
     -- This settings is overriden (disabled) if the dapview integration is enabled and the plugin is installed
-    winbar = true,
+    winbar = {
+      enabled = true,
+      labels = {
+        step_into = "Step Into",
+        step_over = "Step Over",
+        step_back = "Step Back",
+      },
+      order = {
+        "step_into", "step_over", "step_back"
+      }
+    }
 
     -- The sign to use for instruction the exectution is stopped at
     sign = "DapStopped",
@@ -47,13 +57,6 @@ require("dap-disasm").setup({
 
     -- Number of instructions to show after the memory reference
     ins_after_memref = 16,
-
-    -- Labels of buttons in winbar
-    controls = {
-      step_into = "Step Into",
-      step_over = "Step Over",
-      step_back = "Step Back",
-    },
 
     -- Columns to display in the disassembly view
     columns = {

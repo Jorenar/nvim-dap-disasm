@@ -119,10 +119,10 @@ mk_winbar = function(is_active)
     step_back = avail_hl(is_active and "DapUIStepBack" or "DapUIStepBackNC"),
   }
   local bar = ""
-  for ctrl,label in pairs(M.config.controls) do
+  for _,ctrl in ipairs(M.config.winbar.order) do
     bar = bar .. string.format(
       "  %%#%s#%%0@v:lua.require'dap-disasm'.%s@%s%%#0#",
-      hls[ctrl], ctrl, label)
+      hls[ctrl], ctrl, M.config.winbar.labels[ctrl])
   end
   return bar
 end
@@ -261,7 +261,7 @@ M.refresh = function()
 
     instructions = res.instructions or {}
     write_buf(pc)
-    if M.config.winbar then
+    if M.config.winbar.enabled then
       vim.api.nvim_set_option_value("winbar", mk_winbar(), {
           win = win,
           scope = "local",
@@ -311,16 +311,20 @@ end, { nargs = "*" })
 M.config = {
   dapui_register = true,
   dapview_register = true,
-  repl_commands = true,
-  winbar = true,
+  winbar = {
+    enabled = true,
+    labels = {
+      step_into = "Step Into",
+      step_over = "Step Over",
+      step_back = "Step Back",
+    },
+    order = {
+      "step_into", "step_over", "step_back"
+    }
+  },
   sign = "DapStopped",
   ins_before_memref = nil,
   ins_after_memref = nil,
-  controls = {
-    step_into = "Step Into",
-    step_over = "Step Over",
-    step_back = "Step Back",
-  },
   columns = {
     "address",
     "instructionBytes",
@@ -335,6 +339,15 @@ M.config = {
 
 M.setup = function(conf)
   vim.treesitter.language.register("disassembly", "dap-disassembly")
+
+  if type(conf.winbar) == "boolean" then
+    M.config.winbar.enabled = conf.winbar
+    conf.winbar = nil
+  end
+  if conf.controls then
+    M.config.winbar.labels = conf.controls
+    conf.controls = nil
+  end
 
   M.config = vim.tbl_deep_extend("force", M.config, conf or {})
 
@@ -363,7 +376,7 @@ M.setup = function(conf)
 
   if M.config.dapview_register and package.loaded["dap-view"] then
     -- disable winbar to avoid conflict with dap-view
-    M.config.winbar = false
+    M.config.winbar.enabled = false
     require("dap-view").register_view("disassembly", {
       action = M.refresh,
       buffer = disasm_buf.create,
