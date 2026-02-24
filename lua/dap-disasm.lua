@@ -58,7 +58,10 @@ disasm_buf.create = function()
   vim.api.nvim_create_autocmd("BufWinEnter" , {
       buffer = buf,
       group = augroup,
-      callback = function() M.refresh() end
+      callback = function()
+        vim.wo.number = false
+        M.refresh()
+      end
     })
 
   return buf
