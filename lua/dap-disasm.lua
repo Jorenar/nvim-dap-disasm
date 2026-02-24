@@ -332,8 +332,8 @@ M.config = {
   },
   dapview = {
     keymap = "D",
-    label = "Disassembly [D]",
-    short_label = "󰒓 [D]", -- nerd font icon nf-md-cog
+    label = "Disassembly",
+    short_label = "󰒓", -- nerd font icon nf-md-cog
   }
 }
 
