@@ -5,15 +5,10 @@ Disassembly view for [nvim-dap](https://codeberg.org/mfussenegger/nvim-dap)
 
 ## Installation
 
-Install like any other Neovim plugin:
-
+Install like any other Neovim plugin, e.g.:
 ```
-vim.pack.add({
-  { src = "https://codeberg.org/Jorenar/nvim-dap-disasm.git" },
-})
+vim.pack.add({ "https://codeberg.org/Jorenar/nvim-dap-disasm" })
 ```
-
-or any other plugin manager for Neovim <0.12
 
 ## Dependencies
 
